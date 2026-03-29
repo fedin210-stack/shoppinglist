@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping List</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Shopping List</h1>
+        <div id="auth">
+            <input type="password" id="pin" placeholder="Enter PIN">
+            <button id="login">Login</button>
+        </div>
+        <div id="list-container" style="display: none;">
+            <input type="text" id="new-item" placeholder="Add new item">
+            <button id="add-item">Add</button>
+            <button id="logout">Logout</button>
+            <select id="filter">
+                <option value="all">All</option>
+                <option value="todo">To Do</option>
+                <option value="done">Done</option>
+            </select>
+            <ul id="shopping-list"></ul>
+        </div>
+    </div>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        document.getElementById('login').onclick = function() {
+            const pin = document.getElementById('pin').value;
+            if(pin === '0880'){
+                document.getElementById('auth').style.display = 'none';
+                document.getElementById('list-container').style.display = 'block';
+                loadShoppingLists();
+            } else {
+                alert('Invalid PIN!');
+            }
+        };
+
+        document.getElementById('add-item').onclick = function() {
+            const itemName = document.getElementById('new-item').value;
+            if(itemName){
+                const itemRef = database.ref('shoppingLists').push();
+                itemRef.set({name: itemName, done: false});
+                document.getElementById('new-item').value = '';
+            }
+        };
+
+        function loadShoppingLists() {
+            database.ref('shoppingLists').on('value', function(snapshot) {
+                const shoppingList = document.getElementById('shopping-list');
+                shoppingList.innerHTML = '';
+                snapshot.forEach(function(childSnapshot) {
+                    const item = childSnapshot.val();
+                    const li = document.createElement('li');
+                    li.textContent = item.name;
+                    const progressBar = document.createElement('progress');
+                    progressBar.value = item.done ? 1 : 0;
+                    li.appendChild(progressBar);
+                    shoppingList.appendChild(li);
+                });
+            });
+        }
+
+        document.getElementById('filter').onchange = function() {
+            // Implement filter functionality based on selection
+        };
+
+        document.getElementById('logout').onclick = function() {
+            document.getElementById('auth').style.display = 'block';
+            document.getElementById('list-container').style.display = 'none';
+        };
+    </script>
+    <style>
+        body {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: auto;
+        }
+        input, button, select {
+            margin: 5px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+    </style>
+</body>
+</html>

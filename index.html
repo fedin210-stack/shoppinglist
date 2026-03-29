@@ -1,40 +1,4 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Список покупок</title>
-  <script>
-    const firebaseConfig = {
-      apiKey:            "AIzaSyCc2CAV3dTYvpcqizEfiVxZwJ8bOkt0r-8",
-      authDomain:        "shoppinglist-5c78f.firebaseapp.com",
-      databaseURL:       "https://shoppinglist-5c78f-default-rtdb.firebaseio.com",
-      projectId:         "shoppinglist-5c78f",
-      storageBucket:     "shoppinglist-5c78f.firebasestorage.app",
-      messagingSenderId: "1079786262422",
-      appId:             "1:1079786262422:web:7b37ffea8ebfc6f96e17b7"
-    };
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; }
-    body { font-family: -apple-system,'Helvetica Neue',sans-serif; min-height:100dvh; background:#08080f; color:#fff; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
-
-    /* ── BG ── */
-    .bg { position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none; }
-    .bg-b { position:absolute;border-radius:50%; }
-    .bg-b1 { width:700px;height:700px;background:radial-gradient(circle,rgba(124,58,237,.32) 0%,transparent 70%);top:-200px;left:-150px;animation:d1 14s ease-in-out infinite alternate; }
-    .bg-b2 { width:550px;height:550px;background:radial-gradient(circle,rgba(6,182,212,.22) 0%,transparent 70%);bottom:-120px;right:-100px;animation:d2 17s ease-in-out infinite alternate; }
-    .bg-b3 { width:450px;height:450px;background:radial-gradient(circle,rgba(236,72,153,.18) 0%,transparent 70%);top:45%;left:35%;animation:d3 20s ease-in-out infinite alternate; }
-    @keyframes d1 { to { transform:translate(70px,90px) scale(1.18); } }
-    @keyframes d2 { to { transform:translate(-50px,-70px) scale(1.12); } }
-    @keyframes d3 { to { transform:translate(40px,-50px) scale(.88); } }
-
-    /* ── SCREENS ── */
-    .screen { display:none;position:relative;z-index:1; }
-    .screen.active { display:flex;flex-direction:column; }
+https://fedin210-stack.github.io/shoppinglist/    .screen.active { display:flex;flex-direction:column; }
 
     /* ── PIN ── */
     #pinScreen { min-height:100dvh;align-items:center;justify-content:center;padding:2rem 1.5rem; }

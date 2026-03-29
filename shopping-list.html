@@ -1,314 +1,52 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Список покупок</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
-.screen{display:none;padding:1.5rem 1rem 2rem;max-width:480px;margin:0 auto}
-.screen.active{display:block}
-.pin-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.pin-title{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px;text-align:center}
-.pin-sub{font-size:13px;color:#888;margin-bottom:28px;text-align:center}
-.pin-dots{display:flex;gap:14px;margin-bottom:32px}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid #ccc;background:#f0f0f0;transition:all .15s}
-.pin-dot.filled{background:#1a1a1a;border-color:#1a1a1a}
-.pin-dot.err{background:#fee2e2;border-color:#fca5a5}
-@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
-.pin-dots.shaking{animation:shake .35s}
-.pin-grid{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
-.pk{height:60px;border-radius:12px;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a;font-size:20px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s,transform .1s}
-.pk:hover{background:#f5f5f5}
-.pk:active{transform:scale(.93);background:#ebebeb}
-.pk.ghost{border:none;background:none;pointer-events:none}
-.pk.back{font-size:16px;color:#888}
-.pin-err{font-size:13px;color:#e53e3e;margin-top:16px;min-height:18px;text-align:center}
-.hdr{text-align:center;margin-bottom:1.5rem;position:relative;padding-top:0.5rem}
-.hdr h1{font-size:20px;font-weight:600;color:#1a1a1a}
-.sync-row{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#38a169;margin-top:6px}
-.sdot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.logout-btn{position:absolute;right:0;top:0.5rem;background:none;border:1px solid #e0e0e0;border-radius:8px;font-size:12px;color:#888;cursor:pointer;padding:4px 10px}
-.logout-btn:hover{color:#e53e3e;border-color:#fca5a5;background:#fff5f5}
-.add-row{display:flex;gap:8px;margin-bottom:1rem}
-.add-row input{flex:1;height:42px;border-radius:10px;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a;font-size:15px;padding:0 12px;outline:none}
-.add-row input:focus{border-color:#aaa;box-shadow:0 0 0 3px rgba(0,0,0,0.06)}
-.add-row button{height:42px;padding:0 16px;border-radius:10px;border:1px solid #e0e0e0;background:#fff;color:#1a1a1a;font-size:15px;cursor:pointer;font-weight:500;white-space:nowrap}
-.add-row button:hover{background:#f5f5f5}
-.add-row button:active{transform:scale(.97)}
-.prog-label{font-size:12px;color:#888;margin-bottom:6px}
-.prog-track{height:4px;border-radius:4px;background:#e5e5e5;overflow:hidden}
-.prog-fill{height:100%;border-radius:4px;background:#38a169;transition:width .4s}
-.filters{display:flex;gap:6px;margin:12px 0}
-.fb{flex:1;height:32px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;color:#888;font-size:12px;font-weight:500;cursor:pointer}
-.fb.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
-.items-list{display:flex;flex-direction:column;gap:6px}
-.item{display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:12px;border:1px solid #e8e8e8;background:#fff;cursor:pointer;user-select:none;transition:opacity .2s}
-.item:hover{background:#fafafa}
-.item:active{transform:scale(.99)}
-.item.done{opacity:.5}
-.cb{width:22px;height:22px;border-radius:50%;border:1.5px solid #ccc;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;transition:all .2s}
-.item.done .cb{background:#c6f6d5;border-color:#68d391;color:#276749}
-.itext{flex:1;font-size:15px;color:#1a1a1a;word-break:break-word}
-.item.done .itext{text-decoration:line-through;color:#aaa}
-.delbtn{background:none;border:none;color:#ccc;font-size:19px;cursor:pointer;padding:2px 8px;border-radius:8px;line-height:1;flex-shrink:0}
-.delbtn:hover{color:#e53e3e;background:#fff5f5}
-.empty-msg{text-align:center;padding:3rem 1rem;color:#aaa;font-size:14px}
-.clearbtn{display:block;width:100%;margin-top:10px;padding:10px;border:1.5px dashed #e0e0e0;border-radius:10px;background:none;color:#aaa;font-size:13px;cursor:pointer}
-.clearbtn:hover{background:#fff5f5;color:#e53e3e;border-color:#fca5a5}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1a1a;color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;pointer-events:none;transition:transform .25s;z-index:999;white-space:nowrap}
-.toast.show{transform:translateX(-50%) translateY(0)}
-</style>
+    <title>Shopping List with Firebase</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-database.js"></script>
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Example function to add an item to the shopping list
+        function addItem() {
+            const item = document.getElementById('itemInput').value;
+            database.ref('shoppingList/').push({ item: item });
+            document.getElementById('itemInput').value = '';
+        }
+
+        // Example function to retrieve items
+        function getItems() {
+            database.ref('shoppingList/').on('value', (snapshot) => {
+                const items = snapshot.val();
+                const itemList = document.getElementById('itemList');
+                itemList.innerHTML = '';
+                for (let id in items) {
+                    const li = document.createElement('li');
+                    li.textContent = items[id].item;
+                    itemList.appendChild(li);
+                }
+            });
+        }
+        getItems();
+    </script>
 </head>
 <body>
-
-<div id="pinScreen" class="screen active">
-  <div class="pin-wrap">
-    <div style="font-size:32px;margin-bottom:14px">🔒</div>
-    <div class="pin-title">Введите код</div>
-    <div class="pin-sub">Только для своих</div>
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot" id="pd0"></div>
-      <div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div>
-      <div class="pin-dot" id="pd3"></div>
-    </div>
-    <div class="pin-grid" id="pinGrid">
-      <button class="pk">1</button><button class="pk">2</button><button class="pk">3</button>
-      <button class="pk">4</button><button class="pk">5</button><button class="pk">6</button>
-      <button class="pk">7</button><button class="pk">8</button><button class="pk">9</button>
-      <button class="pk ghost"></button><button class="pk">0</button>
-      <button class="pk back" id="backBtn">⌫</button>
-    </div>
-    <div class="pin-err" id="pinErr"></div>
-  </div>
-</div>
-
-<div id="appScreen" class="screen">
-  <div class="hdr">
-    <button class="logout-btn" id="logoutBtn">Выйти</button>
-    <h1>Список покупок</h1>
-    <div class="sync-row"><span class="sdot"></span><span id="syncLabel">Синхронизируется</span></div>
-  </div>
-  <div class="add-row">
-    <input id="addInp" type="text" placeholder="Добавить продукт..." autocomplete="off"/>
-    <button id="addBtn">+ Добавить</button>
-  </div>
-  <div class="prog-label" id="progLabel"></div>
-  <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
-  <div class="filters">
-    <button class="fb on" data-f="all">Все <span id="cAll">0</span></button>
-    <button class="fb" data-f="todo">Купить <span id="cTodo">0</span></button>
-    <button class="fb" data-f="done">Куплено <span id="cDone">0</span></button>
-  </div>
-  <div class="items-list" id="itemsList"></div>
-  <button class="clearbtn" id="clearBtn" style="display:none">Убрать купленные</button>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-(function(){
-  const PIN = '0880';
-  const SKEY = 'shopping_list_v3';
-  let pinInput = '';
-  let items = [];
-  let activeFilter = 'all';
-  let pollTimer = null;
-  let lastSnap = '';
-  let toastTimer = null;
-
-  function updateDots(state) {
-    for (var i = 0; i < 4; i++) {
-      var d = document.getElementById('pd' + i);
-      d.className = 'pin-dot';
-      if (state === 'error') d.classList.add('err');
-      else if (i < pinInput.length) d.classList.add('filled');
-    }
-  }
-
-  function pinError(msg) {
-    var dotsEl = document.getElementById('pinDots');
-    document.getElementById('pinErr').textContent = msg;
-    updateDots('error');
-    dotsEl.classList.add('shaking');
-    dotsEl.addEventListener('animationend', function() { dotsEl.classList.remove('shaking'); }, {once:true});
-    pinInput = '';
-    setTimeout(function() { updateDots('normal'); document.getElementById('pinErr').textContent = ''; }, 1400);
-  }
-
-  function pressDigit(d) {
-    if (pinInput.length >= 4) return;
-    pinInput += d;
-    updateDots('normal');
-    if (pinInput.length === 4) {
-      setTimeout(function() {
-        if (pinInput === PIN) {
-          document.getElementById('pinScreen').classList.remove('active');
-          document.getElementById('appScreen').classList.add('active');
-          startApp();
-        } else {
-          pinError('Неверный код');
-        }
-      }, 150);
-    }
-  }
-
-  document.getElementById('pinGrid').querySelectorAll('.pk:not(.ghost):not(.back)').forEach(function(btn) {
-    btn.addEventListener('click', function() { pressDigit(btn.textContent.trim()); });
-  });
-
-  document.getElementById('backBtn').addEventListener('click', function() {
-    if (pinInput.length > 0) { pinInput = pinInput.slice(0,-1); updateDots('normal'); }
-    document.getElementById('pinErr').textContent = '';
-  });
-
-  document.getElementById('logoutBtn').addEventListener('click', function() {
-    clearInterval(pollTimer);
-    pinInput = '';
-    updateDots('normal');
-    document.getElementById('appScreen').classList.remove('active');
-    document.getElementById('pinScreen').classList.add('active');
-  });
-
-  function loadItems() {
-    try { var raw = localStorage.getItem(SKEY); items = raw ? JSON.parse(raw) : []; }
-    catch(e) { items = []; }
-  }
-
-  function saveItems() {
-    try { localStorage.setItem(SKEY, JSON.stringify(items)); } catch(e) {}
-  }
-
-  function addItem(text) {
-    text = text.trim();
-    if (!text) return;
-    items.unshift({ id: String(Date.now()), text: text, done: false });
-    saveItems(); renderList(); showToast('Добавлено: ' + text);
-  }
-
-  function toggleItem(id) {
-    var item = items.find(function(i) { return i.id === id; });
-    if (!item) return;
-    item.done = !item.done;
-    saveItems(); renderList();
-    if (item.done) showToast('Куплено: ' + item.text);
-  }
-
-  function deleteItem(id) {
-    items = items.filter(function(i) { return i.id !== id; });
-    saveItems(); renderList();
-  }
-
-  function clearDone() {
-    items = items.filter(function(i) { return !i.done; });
-    saveItems(); renderList(); showToast('Купленные удалены');
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function renderList() {
-    var total = items.length;
-    var doneCount = items.filter(function(i) { return i.done; }).length;
-    var todoCount = total - doneCount;
-    var pct = total > 0 ? Math.round(doneCount / total * 100) : 0;
-    document.getElementById('progFill').style.width = pct + '%';
-    document.getElementById('progLabel').textContent = total > 0 ? (doneCount + ' из ' + total + ' куплено') : '';
-    document.getElementById('cAll').textContent = total;
-    document.getElementById('cTodo').textContent = todoCount;
-    document.getElementById('cDone').textContent = doneCount;
-    document.getElementById('clearBtn').style.display = doneCount > 0 ? 'block' : 'none';
-
-    var visible = items.filter(function(i) {
-      if (activeFilter === 'todo') return !i.done;
-      if (activeFilter === 'done') return i.done;
-      return true;
-    });
-
-    var listEl = document.getElementById('itemsList');
-    if (visible.length === 0) {
-      var msgs = { all: 'Список пуст — добавьте продукты', todo: 'Всё куплено!', done: 'Ничего не куплено' };
-      listEl.innerHTML = '<div class="empty-msg">' + msgs[activeFilter] + '</div>';
-      return;
-    }
-
-    listEl.innerHTML = visible.map(function(item) {
-      return '<div class="item' + (item.done ? ' done' : '') + '" data-id="' + escHtml(item.id) + '">' +
-        '<div class="cb">' + (item.done ? '✓' : '') + '</div>' +
-        '<span class="itext">' + escHtml(item.text) + '</span>' +
-        '<button class="delbtn" data-delid="' + escHtml(item.id) + '">×</button>' +
-      '</div>';
-    }).join('');
-
-    listEl.querySelectorAll('.item').forEach(function(el) {
-      el.addEventListener('click', function(e) {
-        if (e.target.classList.contains('delbtn')) return;
-        toggleItem(el.getAttribute('data-id'));
-      });
-    });
-    listEl.querySelectorAll('.delbtn').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        deleteItem(btn.getAttribute('data-delid'));
-      });
-    });
-  }
-
-  function showToast(msg) {
-    var t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2200);
-  }
-
-  document.querySelectorAll('.fb').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      activeFilter = btn.getAttribute('data-f');
-      document.querySelectorAll('.fb').forEach(function(b) { b.classList.remove('on'); });
-      btn.classList.add('on');
-      renderList();
-    });
-  });
-
-  document.getElementById('addBtn').addEventListener('click', function() {
-    var inp = document.getElementById('addInp');
-    addItem(inp.value); inp.value = ''; inp.focus();
-  });
-
-  document.getElementById('addInp').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { addItem(this.value); this.value = ''; }
-  });
-
-  document.getElementById('clearBtn').addEventListener('click', clearDone);
-
-  window.addEventListener('storage', function(e) {
-    if (e.key === SKEY) { loadItems(); renderList(); }
-  });
-
-  function startApp() {
-    loadItems(); renderList();
-    clearInterval(pollTimer);
-    pollTimer = setInterval(function() {
-      try {
-        var raw = localStorage.getItem(SKEY);
-        var snap = raw || '[]';
-        if (snap !== lastSnap) {
-          lastSnap = snap;
-          items = JSON.parse(snap);
-          renderList();
-          document.getElementById('syncLabel').textContent = 'Обновлено только что';
-          setTimeout(function() {
-            document.getElementById('syncLabel').textContent = 'Синхронизируется';
-          }, 2000);
-        }
-      } catch(e) {}
-    }, 3000);
-  }
-})();
-</script>
+    <h1>My Shopping List</h1>
+    <input type="text" id="itemInput" placeholder="Add an item">
+    <button onclick="addItem()">Add Item</button>
+    <ul id="itemList"></ul>
 </body>
 </html>

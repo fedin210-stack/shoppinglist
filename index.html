@@ -638,8 +638,12 @@ function initFirebase(){
     firebase.initializeApp(firebaseConfig);
     db=firebase.database();listsRef=db.ref(DB_LISTS);histRef=db.ref(DB_HIST);
     db.ref('.info/connected').on('value',function(s){setSync('syncPill',s.val());setSync('syncPill2',s.val());});
-    // load history
     histRef.on('value',function(snap){userHistory=snap.val()||{};});
+    db.ref(DB_CONFIG+'/pin').once('value',function(snap){
+      var val=snap.val();
+      if(val!==null&&val!==undefined){PIN=String(val);}
+      else{document.getElementById('pinErr').textContent='Пин не задан в Firebase';}
+    },function(e){document.getElementById('pinErr').textContent='Ошибка загрузки пина';});
     return true;
   }catch(e){showError('Firebase: '+e.message);return false;}
 }
@@ -658,7 +662,7 @@ function saveToHistory(text,dept){
 /* ── PIN ── */
 function updateDots(state){for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);d.className='pd';if(state==='error')d.classList.add('err');else if(i<pinInput.length)d.classList.add('filled');}}
 function pinError(msg){var el=document.getElementById('pinDots');document.getElementById('pinErr').textContent=msg;updateDots('error');el.classList.add('shaking');el.addEventListener('animationend',function(){el.classList.remove('shaking');},{once:true});pinInput='';setTimeout(function(){updateDots('normal');document.getElementById('pinErr').textContent='';},1500);}
-function pressDigit(d){if(pinInput.length>=4)return;pinInput+=d;updateDots('normal');if(pinInput.length===4){setTimeout(function(){if(pinInput===PIN){showScreen('listsScreen');startLists();}else pinError('Неверный код');},160);}}
+function pressDigit(d){if(pinInput.length>=4)return;if(!PIN){pinError('Подождите...');return;}pinInput+=d;updateDots('normal');if(pinInput.length===4){setTimeout(function(){if(pinInput===PIN){showScreen('listsScreen');startLists();}else pinError('Неверный код');},160);}}
 document.getElementById('pinGrid').querySelectorAll('.pk:not(.ghost):not(.back)').forEach(function(btn){btn.addEventListener('click',function(){pressDigit(btn.querySelector('span').textContent.trim());});});
 document.getElementById('backBtn').addEventListener('click',function(){if(pinInput.length){pinInput=pinInput.slice(0,-1);updateDots('normal');}document.getElementById('pinErr').textContent='';});
 document.getElementById('logoutBtn').addEventListener('click',function(){if(currentItemsRef)currentItemsRef.off();if(listsRef)listsRef.off();pinInput='';updateDots('normal');showScreen('pinScreen');});

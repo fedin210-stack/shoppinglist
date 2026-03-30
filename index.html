@@ -904,7 +904,23 @@ function hideAC(){acOverlay.classList.remove('open');}
 
 /* ── TOGGLE / DELETE ── */
 function toggleItem(id){if(!currentItemsRef||!currentItems)return;var item=currentItems[id];if(!item)return;currentItemsRef.child(id).update({done:!item.done});if(!item.done)showToast('Куплено: '+item.text);}
-function deleteItem(id){if(currentItemsRef)currentItemsRef.child(id).remove();}
+function deleteItem(id){
+  if(!currentItemsRef||!id)return;
+  // remove from list
+  var item=currentItems&&currentItems[id];
+  currentItemsRef.child(id).remove();
+  // note: we intentionally keep history so suggestions still work for commonly-bought items
+  // but if user explicitly deletes, decrement count — if reaches 0, remove from history
+  if(item&&item.text&&histRef){
+    var hkey=item.text.toLowerCase().replace(/[.#$\/\[\]]/g,'_');
+    histRef.child(hkey).transaction(function(cur){
+      if(!cur)return null;
+      var newCount=(cur.count||1)-1;
+      if(newCount<=0)return null; // remove entry
+      return Object.assign({},cur,{count:newCount});
+    });
+  }
+}
 
 /* ── DEPT on item ── */
 function setItemDept(id,deptId){
@@ -959,13 +975,14 @@ function askDeleteItem(id, text, confirmFn, cancelFn){
 }
 function closeDeleteItemModal(doConfirm){
   document.getElementById('deleteItemModal').classList.remove('show');
-  if(doConfirm){
-    if(pendingItemConfirmFn) pendingItemConfirmFn();
-    if(pendingDeleteItemId) deleteItem(pendingDeleteItemId);
-  } else {
-    if(pendingItemCancelFn) pendingItemCancelFn();
-  }
+  var id=pendingDeleteItemId, cfn=pendingItemConfirmFn, ccfn=pendingItemCancelFn;
   pendingDeleteItemId=null; pendingItemConfirmFn=null; pendingItemCancelFn=null;
+  if(doConfirm){
+    if(cfn) cfn(); // triggers swipe collapse animation
+    if(id) deleteItem(id);
+  } else {
+    if(ccfn) ccfn(); // snap back
+  }
 }
 document.getElementById('cancelDeleteItemBtn').addEventListener('click',function(){closeDeleteItemModal(false);});
 document.getElementById('confirmDeleteItemBtn').addEventListener('click',function(){closeDeleteItemModal(true);});
@@ -1026,7 +1043,7 @@ function attachSwipe(wrap, onDelete){
     bg.classList.add('visible'); bg.style.opacity=1;
     inner.classList.add('snapping');
     inner.style.transform='translateX(-110%)';
-    setTimeout(function(){collapse(); if(onDelete)onDelete();},300);
+    setTimeout(function(){collapse();},300);
   }
 
   function start(x,y){

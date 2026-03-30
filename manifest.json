@@ -1,0 +1,13 @@
+{
+  "name": "Список покупок",
+  "short_name": "Покупки",
+  "description": "Семейный список покупок",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#06060e",
+  "theme_color": "#06060e",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

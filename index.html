@@ -150,6 +150,7 @@
     /* ── LIST CARDS ── */
     .new-list-row{display:flex;gap:10px;margin-bottom:1.5rem}
     .lists-grid{display:flex;flex-direction:column;gap:10px}
+    .lists-grid .swipe-wrap{max-height:200px;opacity:1}
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
     .list-card{
       display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:22px;
@@ -223,6 +224,7 @@
 
     /* items list */
     .items-list{display:flex;flex-direction:column;gap:8px}
+    .items-list .swipe-wrap{max-height:200px;opacity:1}
     @keyframes slideDown{from{opacity:0;transform:translateY(-10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 
     .cat-header{display:flex;align-items:center;gap:8px;padding:6px 2px;margin-top:4px}
@@ -316,6 +318,25 @@
     .icon-option{height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
     .icon-option:hover{background:rgba(167,139,250,.2);border-color:rgba(167,139,250,.4);transform:scale(1.1)}
     .icon-option.selected{background:rgba(167,139,250,.3);border-color:rgba(167,139,250,.6);box-shadow:0 0 14px rgba(167,139,250,.35)}
+
+    /* ── SWIPE TO DELETE ── */
+    .swipe-wrap{position:relative;overflow:hidden;border-radius:18px;transition:max-height .32s cubic-bezier(.4,0,.2,1),opacity .28s}
+    .swipe-wrap.list-type{border-radius:22px}
+    .swipe-wrap.collapsing{max-height:0!important;opacity:0;pointer-events:none}
+    .swipe-bg{
+      position:absolute;top:0;right:0;bottom:0;left:0;
+      display:flex;align-items:center;justify-content:flex-end;
+      padding-right:24px;gap:8px;
+      background:rgba(255,59,48,.9);
+      border-radius:inherit;
+      visibility:hidden;
+    }
+    .swipe-bg.visible{visibility:visible}
+    .swipe-bg-icon{font-size:18px;line-height:1}
+    .swipe-bg-label{font-size:13px;font-weight:600;color:#fff;letter-spacing:-.1px}
+    .swipe-inner{position:relative;z-index:2;will-change:transform;touch-action:pan-y;cursor:grab}
+    .swipe-inner:active{cursor:grabbing}
+    .swipe-inner.snapping{transition:transform .3s cubic-bezier(.4,0,.2,1)}
   </style>
 </head>
 <body>
@@ -681,20 +702,29 @@ function renderLists(data){
     var total=list.items?Object.keys(list.items).length:0;
     var done=list.items?Object.values(list.items).filter(function(i){return i.done;}).length:0;
     var meta=total===0?'Пусто':done+' из '+total+' куплено';
-    return '<div class="list-card" data-lid="'+esc(list._id)+'">'
+    var cardInner='<div class="list-card" data-lid="'+esc(list._id)+'">'
       +'<div class="list-card-icon '+color+'" data-iconid="'+esc(list._id)+'" title="Сменить иконку">'+icon+'</div>'
       +'<div class="list-card-body"><div class="list-card-name">'+esc(list.name)+'</div><div class="list-card-meta">'+meta+'</div></div>'
       +'<div class="list-card-arrow">›</div>'
-      +'<button class="list-del-btn" data-delid="'+esc(list._id)+'">×</button></div>';
+      +'</div>';
+    return '<div class="swipe-wrap list-type" data-swipe-lid="'+esc(list._id)+'">'
+      +'<div class="swipe-bg"><span class="swipe-bg-icon">🗑</span><span class="swipe-bg-label">Удалить список</span></div>'
+      +'<div class="swipe-inner">'+cardInner+'</div>'
+      +'</div>';
   }).join('');
   grid.querySelectorAll('.list-card').forEach(function(card){
     card.addEventListener('click',function(e){
-      if(e.target.classList.contains('list-del-btn'))return;
       if(e.target.dataset.iconid){openIconPicker(e.target.dataset.iconid,e.target.textContent.trim());return;}
       openList(card.getAttribute('data-lid'));
     });
   });
-  grid.querySelectorAll('.list-del-btn').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();askDeleteList(btn.getAttribute('data-delid'),data[btn.getAttribute('data-delid')]);});});
+  // attach swipe-to-delete for list cards
+  grid.querySelectorAll('.swipe-wrap.list-type').forEach(function(wrap){
+    attachSwipe(wrap, function(){
+      var lid=wrap.getAttribute('data-swipe-lid');
+      askDeleteList(lid, data[lid]);
+    });
+  });
 }
 function createList(name){name=name.trim();if(!name||!listsRef)return;listsRef.push({name:name,icon:'🛒',color:pickColor(name),createdAt:firebase.database.ServerValue.TIMESTAMP});showToast('Список «'+name+'» создан');}
 function askDeleteList(id,list){pendingDeleteId=id;document.getElementById('deleteModalText').textContent='Список «'+(list?list.name:'')+'» и все продукты будут удалены.';document.getElementById('deleteModal').classList.add('show');}
@@ -844,6 +874,63 @@ function clearDone(){if(!currentItemsRef||!currentItems)return;var u={};Object.k
 document.getElementById('uncheckAllBtn').addEventListener('click',uncheckAll);
 document.getElementById('clearDoneBtn').addEventListener('click',clearDone);
 
+/* ── SWIPE TO DELETE ── */
+function attachSwipe(wrap, onDelete){
+  var inner=wrap.querySelector('.swipe-inner');
+  var bg=wrap.querySelector('.swipe-bg');
+  var TRIGGER=90, AUTO=220;
+  var startX=0, startY=0, dx=0, dragging=false, verticalLock=false, deleted=false;
+
+  function start(x,y){startX=x;startY=y;dx=0;dragging=true;verticalLock=false;inner.classList.remove('snapping');}
+  function move(x,y){
+    if(!dragging||deleted)return;
+    var diffX=x-startX, diffY=y-startY;
+    if(!verticalLock&&Math.abs(diffY)>Math.abs(diffX)&&Math.abs(diffY)>8){dragging=false;snap(0);return;}
+    if(diffX>0){snap(0);dragging=false;return;}
+    dx=diffX;
+    if(Math.abs(dx)>4) bg.classList.add('visible');
+    inner.style.transform='translateX('+dx+'px)';
+    var pct=Math.min(Math.abs(dx)/TRIGGER,1);
+    bg.style.opacity=pct;
+    if(Math.abs(dx)>=AUTO){finishDelete();}
+  }
+  function end(){
+    if(!dragging||deleted)return;
+    dragging=false;
+    if(Math.abs(dx)>=TRIGGER){finishDelete();}else{snap(0);}
+  }
+  function snap(to){
+    inner.classList.add('snapping');
+    inner.style.transform='translateX('+to+'px)';
+    if(to===0){bg.style.opacity=0;setTimeout(function(){bg.classList.remove('visible');},300);}
+  }
+  function finishDelete(){
+    if(deleted)return;deleted=true;
+    bg.classList.add('visible');
+    bg.style.opacity=1;
+    inner.classList.add('snapping');
+    inner.style.transform='translateX(-110%)';
+    wrap.style.maxHeight=wrap.offsetHeight+'px';
+    wrap.style.overflow='hidden';
+    setTimeout(function(){wrap.classList.add('collapsing');},80);
+    setTimeout(function(){if(onDelete)onDelete();},420);
+  }
+
+  // Touch
+  inner.addEventListener('touchstart',function(e){start(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  inner.addEventListener('touchmove',function(e){
+    if(!dragging)return;
+    move(e.touches[0].clientX,e.touches[0].clientY);
+    if(Math.abs(dx)>8)e.preventDefault();
+  },{passive:false});
+  inner.addEventListener('touchend',end,{passive:true});
+
+  // Mouse
+  inner.addEventListener('mousedown',function(e){start(e.clientX,e.clientY);e.preventDefault();});
+  window.addEventListener('mousemove',function(e){if(dragging)move(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',function(){if(dragging)end();});
+}
+
 /* ── RENDER ── */
 function renderItems(itemsMap){
   currentItems=itemsMap;
@@ -881,22 +968,28 @@ function renderItems(itemsMap){
   }
 
   listEl.querySelectorAll('.item').forEach(function(el){
-    el.addEventListener('click',function(e){if(e.target.classList.contains('delbtn')||e.target.classList.contains('cat-btn'))return;toggleItem(el.getAttribute('data-id'));});
+    el.addEventListener('click',function(e){if(e.target.classList.contains('cat-btn'))return;toggleItem(el.getAttribute('data-id'));});
   });
-  listEl.querySelectorAll('.delbtn').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();deleteItem(btn.getAttribute('data-did'));});});
   listEl.querySelectorAll('.cat-btn').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();openDeptPopup(btn.getAttribute('data-cid'),btn);});});
+  // attach swipe-to-delete for items
+  listEl.querySelectorAll('.swipe-wrap').forEach(function(wrap){
+    attachSwipe(wrap, function(){deleteItem(wrap.getAttribute('data-swipe-id'));});
+  });
 }
 
 function itemHtml(item,hideDept){
   var dept=item.dept?getDept(item.dept):null;
   var badge=(!hideDept&&dept)?'<span class="icat">'+dept.icon+' '+dept.label+'</span>':'';
-  return '<div class="item'+(item.done?' done':'')+'" data-id="'+esc(item._id)+'">'
+  var inner='<div class="item'+(item.done?' done':'')+'" data-id="'+esc(item._id)+'">'
     +'<div class="cb">'+(item.done?'✓':'')+'</div>'
     +'<div class="item-body"><div class="itext">'+esc(item.text)+'</div>'+badge+'</div>'
     +'<div class="item-actions">'
     +'<button class="cat-btn" data-cid="'+esc(item._id)+'" title="Назначить отдел">☰</button>'
-    +'<button class="delbtn" data-did="'+esc(item._id)+'">×</button>'
     +'</div></div>';
+  return '<div class="swipe-wrap" data-swipe-id="'+esc(item._id)+'">'
+    +'<div class="swipe-bg"><span class="swipe-bg-icon">🗑</span><span class="swipe-bg-label">Удалить</span></div>'
+    +'<div class="swipe-inner">'+inner+'</div>'
+    +'</div>';
 }
 
 /* ── FILTERS ── */

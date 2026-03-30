@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d0818"/>
+      <stop offset="100%" stop-color="#060612"/>
+    </linearGradient>
+    <linearGradient id="b1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="b2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="b3" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#e0d4ff" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#a78bfa" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.18"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect width="512" height="512" rx="115"/>
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+  <g clip-path="url(#clip)">
+    <ellipse cx="160" cy="140" rx="260" ry="220" fill="url(#b1)"/>
+    <ellipse cx="380" cy="400" rx="230" ry="200" fill="url(#b2)"/>
+    <ellipse cx="256" cy="290" rx="200" ry="170" fill="url(#b3)"/>
+  </g>
+  <rect width="512" height="512" rx="115" fill="none" stroke="url(#border)" stroke-width="2"/>
+  <rect width="512" height="260" rx="115" fill="url(#shine)"/>
+  <!-- Handle -->
+  <path d="M 152 208 Q 152 172 188 172 L 324 172 Q 360 172 360 208"
+        fill="none" stroke="url(#cg)" stroke-width="22" stroke-linecap="round"/>
+  <!-- Bag body -->
+  <rect x="138" y="204" width="236" height="176" rx="30" fill="url(#cg)"/>
+  <!-- Shine on bag -->
+  <rect x="138" y="204" width="236" height="70" rx="30" fill="white" opacity="0.09"/>
+  <!-- Checkmark -->
+  <path d="M 192 292 L 224 328 L 320 240"
+        fill="none" stroke="#6d28d9" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wheels -->
+  <circle cx="196" cy="398" r="17" fill="url(#bg)"/>
+  <circle cx="316" cy="398" r="17" fill="url(#bg)"/>
+  <circle cx="196" cy="398" r="8" fill="url(#cg)" opacity="0.65"/>
+  <circle cx="316" cy="398" r="8" fill="url(#cg)" opacity="0.65"/>
+</svg>

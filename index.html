@@ -337,6 +337,24 @@
     .swipe-inner{position:relative;z-index:2;will-change:transform;touch-action:pan-y;cursor:grab}
     .swipe-inner:active{cursor:grabbing}
     .swipe-inner.snapping{transition:transform .3s cubic-bezier(.4,0,.2,1)}
+    /* ── EDIT BUTTON ── */
+    .edit-btn{
+      background:none;border:none;cursor:pointer;padding:6px;border-radius:10px;
+      line-height:1;transition:all .15s;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      width:30px;height:30px;
+      color:rgba(255,255,255,.28);
+      font-size:14px;
+    }
+    .edit-btn:hover{color:#c4b5fd;background:rgba(167,139,250,.16)}
+    .edit-btn svg{width:14px;height:14px;fill:currentColor}
+    .list-card-name-wrap{display:flex;align-items:center;gap:4px;min-width:0}
+    .list-card-name-wrap .list-card-name{flex:1;min-width:0}
+    /* on desktop show edit on hover; on touch always dim */
+    @media(hover:hover){
+      .list-card-name-wrap .edit-btn{opacity:0}
+      .list-card:hover .list-card-name-wrap .edit-btn{opacity:1}
+    }
   </style>
 </head>
 <body>
@@ -560,6 +578,30 @@
   </div>
 </div>
 
+<!-- MODAL: confirm delete item -->
+<div class="modal-overlay" id="deleteItemModal">
+  <div class="modal-sheet">
+    <div class="modal-title">Удалить товар?</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.42);line-height:1.5" id="deleteItemModalText"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="cancelDeleteItemBtn">Отмена</button>
+      <button class="modal-btn red" id="confirmDeleteItemBtn">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: edit name -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-sheet">
+    <div class="modal-title" id="editModalTitle">Переименовать</div>
+    <input class="glass-inp" id="editModalInp" type="text" autocomplete="off" style="width:100%"/>
+    <div class="modal-actions">
+      <button class="modal-btn" id="cancelEditBtn">Отмена</button>
+      <button class="modal-btn" id="confirmEditBtn" style="background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.45);color:#c4b5fd;">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: icon picker -->
 <div class="modal-overlay" id="iconModal">
   <div class="modal-sheet">
@@ -587,7 +629,7 @@ var PIN=null, DB_LISTS='shopping/lists', DB_HIST='shopping/history', DB_CONFIG='
 var pinInput='', activeFilter='all', sortByDept=false, toastTimer=null;
 var db=null, listsRef=null, histRef=null;
 var currentListId=null, currentItemsRef=null, currentItems=null;
-var pendingDeleteId=null, iconTargetId=null;
+var pendingDeleteId=null, pendingDeleteItemId=null, iconTargetId=null;
 var userHistory={}; // key=text.toLowerCase(), val={text,dept,count}
 
 /* ──────────────────────────────────────
@@ -704,7 +746,11 @@ function renderLists(data){
     var meta=total===0?'Пусто':done+' из '+total+' куплено';
     var cardInner='<div class="list-card" data-lid="'+esc(list._id)+'">'
       +'<div class="list-card-icon '+color+'" data-iconid="'+esc(list._id)+'" title="Сменить иконку">'+icon+'</div>'
-      +'<div class="list-card-body"><div class="list-card-name">'+esc(list.name)+'</div><div class="list-card-meta">'+meta+'</div></div>'
+      +'<div class="list-card-body">'
+      +'<div class="list-card-name-wrap"><div class="list-card-name">'+esc(list.name)+'</div>'
+      +'<button class="edit-btn" data-elid="'+esc(list._id)+'" data-elname="'+esc(list.name)+'" title="Переименовать"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11.5 1.5a1.414 1.414 0 0 1 2 2L5 12H3v-2L11.5 1.5z"/><path d="M3 14h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg></button>'
+      +'</div>'
+      +'<div class="list-card-meta">'+meta+'</div></div>'
       +'<div class="list-card-arrow">›</div>'
       +'</div>';
     return '<div class="swipe-wrap list-type" data-swipe-lid="'+esc(list._id)+'">'
@@ -714,23 +760,51 @@ function renderLists(data){
   }).join('');
   grid.querySelectorAll('.list-card').forEach(function(card){
     card.addEventListener('click',function(e){
+      if(e.target.classList.contains('edit-btn'))return;
       if(e.target.dataset.iconid){openIconPicker(e.target.dataset.iconid,e.target.textContent.trim());return;}
       openList(card.getAttribute('data-lid'));
     });
   });
+  grid.querySelectorAll('.edit-btn[data-elid]').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var lid=btn.getAttribute('data-elid');
+      var name=btn.getAttribute('data-elname');
+      openEditModal('Переименовать список',name,function(newName){
+        if(listsRef) listsRef.child(lid).update({name:newName});
+        showToast('Список переименован');
+      });
+    });
+  });
   // attach swipe-to-delete for list cards
   grid.querySelectorAll('.swipe-wrap.list-type').forEach(function(wrap){
-    attachSwipe(wrap, function(){
+    attachSwipe(wrap, function(confirmFn, cancelFn){
       var lid=wrap.getAttribute('data-swipe-lid');
-      askDeleteList(lid, data[lid]);
+      askDeleteList(lid, data[lid], confirmFn, cancelFn);
     });
   });
 }
 function createList(name){name=name.trim();if(!name||!listsRef)return;listsRef.push({name:name,icon:'🛒',color:pickColor(name),createdAt:firebase.database.ServerValue.TIMESTAMP});showToast('Список «'+name+'» создан');}
-function askDeleteList(id,list){pendingDeleteId=id;document.getElementById('deleteModalText').textContent='Список «'+(list?list.name:'')+'» и все продукты будут удалены.';document.getElementById('deleteModal').classList.add('show');}
-document.getElementById('cancelDeleteBtn').addEventListener('click',function(){document.getElementById('deleteModal').classList.remove('show');});
-document.getElementById('confirmDeleteBtn').addEventListener('click',function(){if(pendingDeleteId&&listsRef){listsRef.child(pendingDeleteId).remove();showToast('Список удалён');}document.getElementById('deleteModal').classList.remove('show');});
-document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+var pendingListConfirmFn=null, pendingListCancelFn=null;
+function askDeleteList(id,list,confirmFn,cancelFn){
+  pendingDeleteId=id; pendingListConfirmFn=confirmFn||null; pendingListCancelFn=cancelFn||null;
+  document.getElementById('deleteModalText').textContent='Список «'+(list?list.name:'')+'» и все продукты будут удалены.';
+  document.getElementById('deleteModal').classList.add('show');
+}
+function closeDeleteListModal(doConfirm){
+  document.getElementById('deleteModal').classList.remove('show');
+  if(doConfirm){
+    if(pendingListConfirmFn) pendingListConfirmFn();
+    if(pendingDeleteId&&listsRef) listsRef.child(pendingDeleteId).remove();
+    showToast('Список удалён');
+  } else {
+    if(pendingListCancelFn) pendingListCancelFn();
+  }
+  pendingDeleteId=null; pendingListConfirmFn=null; pendingListCancelFn=null;
+}
+document.getElementById('cancelDeleteBtn').addEventListener('click',function(){closeDeleteListModal(false);});
+document.getElementById('confirmDeleteBtn').addEventListener('click',function(){closeDeleteListModal(true);});
+document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)closeDeleteListModal(false);});
 function openIconPicker(listId,currentIcon){iconTargetId=listId;var grid=document.getElementById('iconGrid');grid.innerHTML=ALL_ICONS.map(function(ic){return '<button class="icon-option'+(ic===currentIcon?' selected':'')+'" data-icon="'+ic+'">'+ic+'</button>';}).join('');grid.querySelectorAll('.icon-option').forEach(function(btn){btn.addEventListener('click',function(){listsRef.child(iconTargetId).update({icon:btn.getAttribute('data-icon')});document.getElementById('iconModal').classList.remove('show');showToast('Иконка обновлена');});});document.getElementById('iconModal').classList.add('show');}
 document.getElementById('cancelIconBtn').addEventListener('click',function(){document.getElementById('iconModal').classList.remove('show');});
 document.getElementById('iconModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
@@ -874,46 +948,114 @@ function clearDone(){if(!currentItemsRef||!currentItems)return;var u={};Object.k
 document.getElementById('uncheckAllBtn').addEventListener('click',uncheckAll);
 document.getElementById('clearDoneBtn').addEventListener('click',clearDone);
 
+/* ── DELETE ITEM CONFIRM ── */
+var pendingItemConfirmFn=null, pendingItemCancelFn=null;
+function askDeleteItem(id, text, confirmFn, cancelFn){
+  pendingDeleteItemId=id;
+  pendingItemConfirmFn=confirmFn||null;
+  pendingItemCancelFn=cancelFn||null;
+  document.getElementById('deleteItemModalText').textContent='«'+text+'» будет удалён из списка.';
+  document.getElementById('deleteItemModal').classList.add('show');
+}
+function closeDeleteItemModal(doConfirm){
+  document.getElementById('deleteItemModal').classList.remove('show');
+  if(doConfirm){
+    if(pendingItemConfirmFn) pendingItemConfirmFn();
+    if(pendingDeleteItemId) deleteItem(pendingDeleteItemId);
+  } else {
+    if(pendingItemCancelFn) pendingItemCancelFn();
+  }
+  pendingDeleteItemId=null; pendingItemConfirmFn=null; pendingItemCancelFn=null;
+}
+document.getElementById('cancelDeleteItemBtn').addEventListener('click',function(){closeDeleteItemModal(false);});
+document.getElementById('confirmDeleteItemBtn').addEventListener('click',function(){closeDeleteItemModal(true);});
+document.getElementById('deleteItemModal').addEventListener('click',function(e){if(e.target===this)closeDeleteItemModal(false);});
+
+/* ── EDIT (list name / item name) ── */
+var editCallback=null;
+function openEditModal(title, currentVal, cb){
+  editCallback=cb;
+  document.getElementById('editModalTitle').textContent=title;
+  var inp=document.getElementById('editModalInp');
+  inp.value=currentVal;
+  document.getElementById('editModal').classList.add('show');
+  setTimeout(function(){inp.focus();inp.select();},180);
+}
+document.getElementById('cancelEditBtn').addEventListener('click',function(){
+  document.getElementById('editModal').classList.remove('show');
+  editCallback=null;
+});
+document.getElementById('confirmEditBtn').addEventListener('click',function(){
+  var val=document.getElementById('editModalInp').value.trim();
+  if(val&&editCallback) editCallback(val);
+  document.getElementById('editModal').classList.remove('show');
+  editCallback=null;
+});
+document.getElementById('editModalInp').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    var val=this.value.trim();
+    if(val&&editCallback) editCallback(val);
+    document.getElementById('editModal').classList.remove('show');
+    editCallback=null;
+  }
+  if(e.key==='Escape') document.getElementById('editModal').classList.remove('show');
+});
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+
 /* ── SWIPE TO DELETE ── */
 function attachSwipe(wrap, onDelete){
   var inner=wrap.querySelector('.swipe-inner');
   var bg=wrap.querySelector('.swipe-bg');
-  var TRIGGER=90, AUTO=220;
-  var startX=0, startY=0, dx=0, dragging=false, verticalLock=false, deleted=false;
+  var TRIGGER=88;
+  var startX=0, startY=0, dx=0, dragging=false, confirmed=false;
 
-  function start(x,y){startX=x;startY=y;dx=0;dragging=true;verticalLock=false;inner.classList.remove('snapping');}
+  function snapBack(){
+    inner.classList.add('snapping');
+    inner.style.transform='translateX(0)';
+    bg.style.opacity=0;
+    setTimeout(function(){bg.classList.remove('visible');inner.classList.remove('snapping');},320);
+  }
+  function collapse(){
+    wrap.style.maxHeight=wrap.offsetHeight+'px';
+    wrap.style.overflow='hidden';
+    setTimeout(function(){wrap.classList.add('collapsing');},16);
+  }
+  function confirmDelete(){
+    if(confirmed)return; confirmed=true;
+    /* First show full red, then fly out */
+    bg.classList.add('visible'); bg.style.opacity=1;
+    inner.classList.add('snapping');
+    inner.style.transform='translateX(-110%)';
+    setTimeout(function(){collapse(); if(onDelete)onDelete();},300);
+  }
+
+  function start(x,y){
+    if(confirmed)return;
+    startX=x; startY=y; dx=0; dragging=true;
+    inner.classList.remove('snapping');
+  }
   function move(x,y){
-    if(!dragging||deleted)return;
+    if(!dragging||confirmed)return;
     var diffX=x-startX, diffY=y-startY;
-    if(!verticalLock&&Math.abs(diffY)>Math.abs(diffX)&&Math.abs(diffY)>8){dragging=false;snap(0);return;}
-    if(diffX>0){snap(0);dragging=false;return;}
+    if(Math.abs(diffY)>Math.abs(diffX)&&Math.abs(diffY)>8){dragging=false;snapBack();return;}
+    if(diffX>0){snapBack();dragging=false;return;}
     dx=diffX;
     if(Math.abs(dx)>4) bg.classList.add('visible');
     inner.style.transform='translateX('+dx+'px)';
-    var pct=Math.min(Math.abs(dx)/TRIGGER,1);
-    bg.style.opacity=pct;
-    if(Math.abs(dx)>=AUTO){finishDelete();}
+    bg.style.opacity=Math.min(Math.abs(dx)/TRIGGER,1);
   }
   function end(){
-    if(!dragging||deleted)return;
+    if(!dragging||confirmed)return;
     dragging=false;
-    if(Math.abs(dx)>=TRIGGER){finishDelete();}else{snap(0);}
-  }
-  function snap(to){
-    inner.classList.add('snapping');
-    inner.style.transform='translateX('+to+'px)';
-    if(to===0){bg.style.opacity=0;setTimeout(function(){bg.classList.remove('visible');},300);}
-  }
-  function finishDelete(){
-    if(deleted)return;deleted=true;
-    bg.classList.add('visible');
-    bg.style.opacity=1;
-    inner.classList.add('snapping');
-    inner.style.transform='translateX(-110%)';
-    wrap.style.maxHeight=wrap.offsetHeight+'px';
-    wrap.style.overflow='hidden';
-    setTimeout(function(){wrap.classList.add('collapsing');},80);
-    setTimeout(function(){if(onDelete)onDelete();},420);
+    if(Math.abs(dx)>=TRIGGER){
+      /* Hold at trigger position, show modal */
+      inner.classList.add('snapping');
+      inner.style.transform='translateX(-'+TRIGGER+'px)';
+      bg.style.opacity=1; bg.classList.add('visible');
+      if(onDelete) onDelete(confirmDelete, snapBack);
+    } else {
+      snapBack();
+    }
   }
 
   // Touch
@@ -968,12 +1110,30 @@ function renderItems(itemsMap){
   }
 
   listEl.querySelectorAll('.item').forEach(function(el){
-    el.addEventListener('click',function(e){if(e.target.classList.contains('cat-btn'))return;toggleItem(el.getAttribute('data-id'));});
+    el.addEventListener('click',function(e){
+      if(e.target.classList.contains('cat-btn')||e.target.classList.contains('edit-btn'))return;
+      toggleItem(el.getAttribute('data-id'));
+    });
   });
   listEl.querySelectorAll('.cat-btn').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();openDeptPopup(btn.getAttribute('data-cid'),btn);});});
+  listEl.querySelectorAll('.edit-btn').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var iid=btn.getAttribute('data-eid');
+      var txt=btn.getAttribute('data-etext');
+      openEditModal('Редактировать товар',txt,function(newText){
+        if(currentItemsRef) currentItemsRef.child(iid).update({text:newText});
+        showToast('Изменено: '+newText);
+      });
+    });
+  });
   // attach swipe-to-delete for items
   listEl.querySelectorAll('.swipe-wrap').forEach(function(wrap){
-    attachSwipe(wrap, function(){deleteItem(wrap.getAttribute('data-swipe-id'));});
+    attachSwipe(wrap, function(confirmFn, cancelFn){
+      var iid=wrap.getAttribute('data-swipe-id');
+      var item=currentItems&&currentItems[iid];
+      askDeleteItem(iid, item?item.text:'', confirmFn, cancelFn);
+    });
   });
 }
 
@@ -984,6 +1144,7 @@ function itemHtml(item,hideDept){
     +'<div class="cb">'+(item.done?'✓':'')+'</div>'
     +'<div class="item-body"><div class="itext">'+esc(item.text)+'</div>'+badge+'</div>'
     +'<div class="item-actions">'
+    +'<button class="edit-btn" data-eid="'+esc(item._id)+'" data-etext="'+esc(item.text)+'" title="Редактировать"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11.5 1.5a1.414 1.414 0 0 1 2 2L5 12H3v-2L11.5 1.5z"/><path d="M3 14h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg></button>'
     +'<button class="cat-btn" data-cid="'+esc(item._id)+'" title="Назначить отдел">☰</button>'
     +'</div></div>';
   return '<div class="swipe-wrap" data-swipe-id="'+esc(item._id)+'">'

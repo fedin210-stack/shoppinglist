@@ -4,6 +4,14 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
   <title>Список покупок</title>
+  <meta name="application-name" content="Покупки"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Покупки"/>
+  <meta name="theme-color" content="#06060e"/>
+  <link rel="apple-touch-icon" href="icon.svg"/>
+  <link rel="icon" type="image/svg+xml" href="icon.svg"/>
+  <link rel="manifest" href="manifest.json"/>
   <script>
     const firebaseConfig = {
       apiKey:            "AIzaSyCc2CAV3dTYvpcqizEfiVxZwJ8bOkt0r-8",
@@ -316,7 +324,58 @@
 <!-- PIN -->
 <div id="pinScreen" class="screen active">
   <div class="pin-card">
-    <div class="app-icon">🛒</div>
+    <div class="app-icon" style="padding:0;overflow:hidden;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="ibg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d0818"/>
+      <stop offset="100%" stop-color="#060612"/>
+    </linearGradient>
+    <linearGradient id="ib1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ib2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ib3" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="icg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#e0d4ff" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="ish" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ibr" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#a78bfa" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.18"/>
+    </linearGradient>
+    <clipPath id="iclip">
+      <rect width="512" height="512" rx="115"/>
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#ibg)"/>
+  <g clip-path="url(#iclip)">
+    <ellipse cx="160" cy="140" rx="260" ry="220" fill="url(#ib1)"/>
+    <ellipse cx="380" cy="400" rx="230" ry="200" fill="url(#ib2)"/>
+    <ellipse cx="256" cy="290" rx="200" ry="170" fill="url(#ib3)"/>
+  </g>
+  <rect width="512" height="512" rx="115" fill="none" stroke="url(#ibr)" stroke-width="2"/>
+  <rect width="512" height="260" rx="115" fill="url(#ish)"/>
+  <path d="M 152 208 Q 152 172 188 172 L 324 172 Q 360 172 360 208" fill="none" stroke="url(#icg)" stroke-width="22" stroke-linecap="round"/>
+  <rect x="138" y="204" width="236" height="176" rx="30" fill="url(#icg)"/>
+  <rect x="138" y="204" width="236" height="70" rx="30" fill="white" opacity="0.09"/>
+  <path d="M 192 292 L 224 328 L 320 240" fill="none" stroke="#6d28d9" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="196" cy="398" r="17" fill="url(#ibg)"/>
+  <circle cx="316" cy="398" r="17" fill="url(#ibg)"/>
+  <circle cx="196" cy="398" r="8" fill="url(#icg)" opacity="0.65"/>
+  <circle cx="316" cy="398" r="8" fill="url(#icg)" opacity="0.65"/>
+</svg></div>
     <div class="pin-title">Список покупок</div>
     <div class="pin-sub">Введите код доступа</div>
     <div class="pin-dots" id="pinDots">
@@ -345,7 +404,61 @@
 <div id="listsScreen" class="screen">
   <div class="top-bar">
     <div class="top-bar-inner">
-      <div class="top-title">🛒 Покупки</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;overflow:hidden;flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="ibg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d0818"/>
+      <stop offset="100%" stop-color="#060612"/>
+    </linearGradient>
+    <linearGradient id="ib1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ib2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ib3" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="icg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#e0d4ff" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="ish" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ibr" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#a78bfa" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.18"/>
+    </linearGradient>
+    <clipPath id="iclip">
+      <rect width="512" height="512" rx="115"/>
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#ibg)"/>
+  <g clip-path="url(#iclip)">
+    <ellipse cx="160" cy="140" rx="260" ry="220" fill="url(#ib1)"/>
+    <ellipse cx="380" cy="400" rx="230" ry="200" fill="url(#ib2)"/>
+    <ellipse cx="256" cy="290" rx="200" ry="170" fill="url(#ib3)"/>
+  </g>
+  <rect width="512" height="512" rx="115" fill="none" stroke="url(#ibr)" stroke-width="2"/>
+  <rect width="512" height="260" rx="115" fill="url(#ish)"/>
+  <path d="M 152 208 Q 152 172 188 172 L 324 172 Q 360 172 360 208" fill="none" stroke="url(#icg)" stroke-width="22" stroke-linecap="round"/>
+  <rect x="138" y="204" width="236" height="176" rx="30" fill="url(#icg)"/>
+  <rect x="138" y="204" width="236" height="70" rx="30" fill="white" opacity="0.09"/>
+  <path d="M 192 292 L 224 328 L 320 240" fill="none" stroke="#6d28d9" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="196" cy="398" r="17" fill="url(#ibg)"/>
+  <circle cx="316" cy="398" r="17" fill="url(#ibg)"/>
+  <circle cx="196" cy="398" r="8" fill="url(#icg)" opacity="0.65"/>
+  <circle cx="316" cy="398" r="8" fill="url(#icg)" opacity="0.65"/>
+</svg></div>
+        <div class="top-title">Покупки</div>
+      </div>
       <div class="top-right">
         <div class="sync-pill" id="syncPill"><span class="sdot"></span><span id="syncLabel">—</span></div>
         <button class="logout-pill" id="logoutBtn">Выйти</button>
@@ -467,6 +580,7 @@ var DEPTS=[
   {id:'fish',     icon:'🐟', label:'Рыба и морепродукты'},
   {id:'frozen',   icon:'🧊', label:'Замороженные продукты'},
   {id:'bakery',   icon:'🍞', label:'Хлеб и выпечка'},
+  {id:'ready',    icon:'🍱', label:'Готовая еда'},
   {id:'grocery',  icon:'🫙', label:'Бакалея'},
   {id:'drink',    icon:'🧃', label:'Напитки'},
   {id:'alcohol',  icon:'🍷', label:'Алкоголь'},

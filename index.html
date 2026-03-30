@@ -355,6 +355,37 @@
       .list-card-name-wrap .edit-btn{opacity:0}
       .list-card:hover .list-card-name-wrap .edit-btn{opacity:1}
     }
+    /* ── DRAG TO REORDER ── */
+    .lists-grid.drag-active .swipe-wrap{transition:transform .2s cubic-bezier(.4,0,.2,1)}
+    .drag-ghost{
+      position:fixed;z-index:9999;pointer-events:none;
+      border-radius:22px;
+      box-shadow:0 16px 48px rgba(0,0,0,.55),0 0 0 1.5px rgba(167,139,250,.5);
+      opacity:.94;
+      transform:scale(1.04) rotate(-1deg);
+      transition:none;
+    }
+    .drag-placeholder{
+      border-radius:22px;
+      background:rgba(167,139,250,.1);
+      border:2px dashed rgba(167,139,250,.35);
+      transition:height .15s;
+    }
+    .swipe-wrap.drag-source{opacity:0;pointer-events:none}
+    .lists-grid.drag-active .swipe-wrap:not(.drag-source){
+      cursor:grab;
+    }
+    .drag-handle{
+      position:absolute;right:14px;top:50%;transform:translateY(-50%);
+      display:none;
+      flex-direction:column;gap:3px;padding:6px;
+      cursor:grab;z-index:5;
+      opacity:0;transition:opacity .2s;
+    }
+    .drag-handle span{display:block;width:18px;height:2px;border-radius:2px;background:rgba(255,255,255,.3)}
+    .lists-grid.drag-active .drag-handle{display:flex;opacity:1}
+    .lists-grid.drag-active .list-card{padding-right:44px}
+
   </style>
 </head>
 <body>
@@ -735,11 +766,137 @@ function showScreen(id){document.querySelectorAll('.screen').forEach(function(s)
 
 /* ── LISTS ── */
 function startLists(){if(!db&&!initFirebase())return;listsRef.on('value',function(snap){renderLists(snap.val());});}
+/* ── DRAG TO REORDER LISTS ── */
+function initDragSort(grid, arr){
+  var wraps=Array.from(grid.querySelectorAll('.swipe-wrap.list-type'));
+  var LONG_PRESS=400;
+  var dragActive=false, ghost=null, source=null, placeholder=null;
+  var startY=0, startX=0, ghostOffY=0, ghostOffX=0, pressTimer=null;
+
+  function saveOrder(){
+    var newOrder=Array.from(grid.querySelectorAll('.swipe-wrap.list-type:not(.drag-placeholder-wrap)'));
+    var updates={};
+    newOrder.forEach(function(w,i){
+      var lid=w.getAttribute('data-swipe-lid');
+      if(lid) updates[lid+'/order']=i;
+    });
+    if(listsRef) listsRef.update(updates);
+  }
+
+  function activateDrag(wrap, clientX, clientY){
+    if(dragActive)return;
+    dragActive=true;
+    grid.classList.add('drag-active');
+
+    // Haptic feedback on mobile
+    if(navigator.vibrate) navigator.vibrate(30);
+
+    source=wrap;
+    var rect=wrap.getBoundingClientRect();
+    ghostOffX=clientX-rect.left;
+    ghostOffY=clientY-rect.top;
+
+    // Create ghost clone
+    ghost=wrap.cloneNode(true);
+    ghost.className='drag-ghost';
+    ghost.style.width=rect.width+'px';
+    ghost.style.height=rect.height+'px';
+    ghost.style.left=(rect.left)+'px';
+    ghost.style.top=(rect.top)+'px';
+    document.body.appendChild(ghost);
+
+    // Placeholder same height
+    placeholder=document.createElement('div');
+    placeholder.className='drag-placeholder';
+    placeholder.style.height=rect.height+'px';
+    placeholder.style.marginBottom='10px';
+    wrap.parentNode.insertBefore(placeholder,wrap);
+    wrap.classList.add('drag-source');
+
+    moveGhost(clientX,clientY);
+  }
+
+  function moveGhost(clientX,clientY){
+    if(!ghost)return;
+    ghost.style.left=(clientX-ghostOffX)+'px';
+    ghost.style.top=(clientY-ghostOffY)+'px';
+
+    // Find insertion point
+    var items=Array.from(grid.querySelectorAll('.swipe-wrap.list-type:not(.drag-source)'));
+    var inserted=false;
+    for(var i=0;i<items.length;i++){
+      var r=items[i].getBoundingClientRect();
+      var mid=r.top+r.height/2;
+      if(clientY<mid){
+        grid.insertBefore(placeholder,items[i]);
+        inserted=true;break;
+      }
+    }
+    if(!inserted) grid.appendChild(placeholder);
+  }
+
+  function endDrag(){
+    if(!dragActive)return;
+    dragActive=false;
+    grid.classList.remove('drag-active');
+
+    if(ghost){ghost.parentNode.removeChild(ghost);ghost=null;}
+    if(source){source.classList.remove('drag-source');}
+    if(placeholder){
+      placeholder.parentNode.insertBefore(source,placeholder);
+      placeholder.parentNode.removeChild(placeholder);
+      placeholder=null;
+    }
+    saveOrder();
+    source=null;
+  }
+
+  function cancelPress(){clearTimeout(pressTimer);pressTimer=null;}
+
+  wraps.forEach(function(wrap){
+    // Touch: long press activates, then drag
+    wrap.addEventListener('touchstart',function(e){
+      if(dragActive)return;
+      var t=e.touches[0];
+      startX=t.clientX;startY=t.clientY;
+      pressTimer=setTimeout(function(){
+        activateDrag(wrap,startX,startY);
+      },LONG_PRESS);
+    },{passive:true});
+
+    wrap.addEventListener('touchmove',function(e){
+      if(!pressTimer&&!dragActive)return;
+      var t=e.touches[0];
+      // cancel long press if moved too much
+      if(pressTimer&&(Math.abs(t.clientX-startX)>8||Math.abs(t.clientY-startY)>8)){
+        cancelPress();return;
+      }
+      if(dragActive){e.preventDefault();moveGhost(t.clientX,t.clientY);}
+    },{passive:false});
+
+    wrap.addEventListener('touchend',function(){cancelPress();if(dragActive)endDrag();},{passive:true});
+    wrap.addEventListener('touchcancel',function(){cancelPress();if(dragActive)endDrag();},{passive:true});
+
+    // Mouse: long press activates
+    wrap.addEventListener('mousedown',function(e){
+      if(e.button!==0)return;
+      startX=e.clientX;startY=e.clientY;
+      pressTimer=setTimeout(function(){activateDrag(wrap,startX,startY);},LONG_PRESS);
+    });
+  });
+
+  document.addEventListener('mousemove',function(e){
+    if(pressTimer&&(Math.abs(e.clientX-startX)>8||Math.abs(e.clientY-startY)>8)) cancelPress();
+    if(dragActive) moveGhost(e.clientX,e.clientY);
+  });
+  document.addEventListener('mouseup',function(){cancelPress();if(dragActive)endDrag();});
+}
+
 function renderLists(data){
   var grid=document.getElementById('listsGrid');
   if(!data){grid.innerHTML='<div class="empty-msg"><span class="ico">📋</span>Нет списков — создайте первый!</div>';return;}
   var arr=Object.keys(data).map(function(id){return Object.assign({_id:id},data[id]);});
-  arr.sort(function(a,b){return(a.createdAt||0)-(b.createdAt||0);});
+  arr.sort(function(a,b){return(a.order!==undefined&&b.order!==undefined)?(a.order-b.order):(a.createdAt||0)-(b.createdAt||0);});
   grid.innerHTML=arr.map(function(list){
     var icon=list.icon||'🛒',color=list.color||pickColor(list.name);
     var total=list.items?Object.keys(list.items).length:0;
@@ -753,7 +910,8 @@ function renderLists(data){
       +'</div>'
       +'<div class="list-card-meta">'+meta+'</div></div>'
       +'<div class="list-card-arrow">›</div>'
-      +'</div>';
+      +'</div>'
+      +'<div class="drag-handle"><span></span><span></span><span></span></div>';
     return '<div class="swipe-wrap list-type" data-swipe-lid="'+esc(list._id)+'">'
       +'<div class="swipe-bg"><span class="swipe-bg-icon">🗑</span><span class="swipe-bg-label">Удалить список</span></div>'
       +'<div class="swipe-inner">'+cardInner+'</div>'
@@ -784,6 +942,8 @@ function renderLists(data){
       askDeleteList(lid, data[lid], confirmFn, cancelFn);
     });
   });
+  // init drag-to-reorder
+  initDragSort(grid, arr);
 }
 function createList(name){name=name.trim();if(!name||!listsRef)return;listsRef.push({name:name,icon:'🛒',color:pickColor(name),createdAt:firebase.database.ServerValue.TIMESTAMP});showToast('Список «'+name+'» создан');}
 var pendingListConfirmFn=null, pendingListCancelFn=null;

@@ -985,6 +985,50 @@ function openList(id){
   showScreen('itemsScreen');
   currentItemsRef.on('value',function(snap){renderItems(snap.val());});
 }
+/* ── SWIPE BACK (right edge → lists) ── */
+(function(){
+  var screen=document.getElementById('itemsScreen');
+  var EDGE=32, THRESHOLD=80, MAX_Y=50;
+  var active=false, startX=0, startY=0, dx=0;
+
+  screen.addEventListener('touchstart',function(e){
+    var t=e.touches[0];
+    if(t.clientX>EDGE)return; // only from left edge
+    active=true; startX=t.clientX; startY=t.clientY; dx=0;
+    screen.style.transition='none';
+  },{passive:true});
+
+  screen.addEventListener('touchmove',function(e){
+    if(!active)return;
+    var t=e.touches[0];
+    var diffX=t.clientX-startX;
+    var diffY=t.clientY-startY;
+    if(Math.abs(diffY)>MAX_Y){active=false;screen.style.transform='';return;}
+    dx=Math.max(0,diffX);
+    screen.style.transform='translateX('+dx+'px)';
+    screen.style.opacity=1-(dx/(window.innerWidth*0.6));
+  },{passive:true});
+
+  function finish(){
+    if(!active)return; active=false;
+    if(dx>=THRESHOLD){
+      screen.style.transition='transform .28s cubic-bezier(.4,0,.2,1),opacity .28s';
+      screen.style.transform='translateX('+window.innerWidth+'px)';
+      screen.style.opacity='0';
+      setTimeout(function(){
+        screen.style.transform='';screen.style.opacity='';screen.style.transition='';
+        document.getElementById('backToLists').click();
+      },280);
+    } else {
+      screen.style.transition='transform .22s cubic-bezier(.4,0,.2,1),opacity .22s';
+      screen.style.transform='';screen.style.opacity='';
+      setTimeout(function(){screen.style.transition='';},220);
+    }
+  }
+  screen.addEventListener('touchend',finish,{passive:true});
+  screen.addEventListener('touchcancel',function(){active=false;screen.style.transform='';screen.style.opacity='';},{passive:true});
+})();
+
 document.getElementById('backToLists').addEventListener('click',function(){if(currentItemsRef)currentItemsRef.off();closeDeptPopup();hideAC();currentListId=null;activeFilter='all';sortByDept=false;showScreen('listsScreen');});
 document.getElementById('sortBtn').addEventListener('click',function(){sortByDept=!sortByDept;this.classList.toggle('on',sortByDept);if(currentItems!==undefined)renderItems(currentItems);});
 
